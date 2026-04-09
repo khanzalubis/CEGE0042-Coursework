@@ -46,8 +46,7 @@ raw_data <- raw_data %>%
                                               "ymd HM", "ymd HMS")),
     hour    = hour(start_time),
     date    = as_date(start_time),
-    weekday = wday(start_time, label = TRUE)
-  ) %>%
+    weekday = wday(start_time, label = TRUE)) %>%
   filter(!is.na(start_time), !is.na(start_stn_id))
 
 cat("Rows after parsing:", nrow(raw_data), "\n")
