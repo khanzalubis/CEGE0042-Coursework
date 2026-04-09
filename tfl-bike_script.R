@@ -11,9 +11,7 @@ packages <- c("tidyverse", "lubridate", "forecast", "spdep",
 for (pkg in packages) {
   if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
     install.packages(pkg)
-    library(pkg, character.only = TRUE)
-  }
-}
+    library(pkg, character.only = TRUE)}}
 
 # --- 1. DATA LOADING & PREPROCESSING ---
 
@@ -30,9 +28,7 @@ raw_data <- bind_rows(lapply(csv_files, function(f) {
     df <- read_csv(f, show_col_types = FALSE)
     names(df) <- tolower(trimws(gsub("[^a-zA-Z0-9]", "_", names(df))))
     df <- mutate(df, across(everything(), as.character))
-    df
-  }, error = function(e) { cat("Error reading:", basename(f), "\n"); NULL })
-}))
+    df}, error = function(e) { cat("Error reading:", basename(f), "\n"); NULL })}))
 
 cat("Total rows loaded:", nrow(raw_data), "\n")
 
@@ -42,8 +38,7 @@ raw_data <- raw_data %>%
     start_time     = start_date,
     start_stn_id   = start_station_number,
     start_stn_name = start_station,
-    end_time       = end_date
-  ) %>%
+    end_time       = end_date) %>%
   mutate(
     start_stn_id = as.integer(start_stn_id),
     start_time   = parse_date_time(start_time,
@@ -69,10 +64,8 @@ tryCatch({
                                      sapply(stn_raw, `[[`, "id"))),
     station_name   = sapply(stn_raw, `[[`, "commonName"),
     lat = as.numeric(sapply(stn_raw, `[[`, "lat")),
-    lon = as.numeric(sapply(stn_raw, `[[`, "lon"))
-  )
-  cat("Loaded", nrow(stations), "stations from TfL API\n")
-}, error = function(e) {
+    lon = as.numeric(sapply(stn_raw, `[[`, "lon")))
+  cat("Loaded", nrow(stations), "stations from TfL API\n")}, error = function(e) {
   cat("API unavailable - using fallback stations\n")
   stations <<- tibble(
     station_id_num = c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
@@ -111,9 +104,7 @@ tryCatch({
             -0.144664,-0.168641,-0.134765,-0.077040,-0.093080,
             -0.123208,-0.130504,-0.135208,-0.123478,-0.120298,
             -0.112168,-0.122983,-0.131507,-0.055312,-0.144404,
-            -0.136420,-0.134280,-0.113450,-0.115670,-0.088760)
-  )
-})
+            -0.136420,-0.134280,-0.113450,-0.115670,-0.088760))})
 
 # --- 1.5 match stations ---
 raw_data <- raw_data %>%
@@ -144,8 +135,7 @@ all_datetimes <- seq(min(hourly$datetime), max(hourly$datetime), by = "hour")
 complete_grid <- expand.grid(
   start_stn_id = all_stns,
   datetime     = all_datetimes,
-  stringsAsFactors = FALSE
-) %>%
+  stringsAsFactors = FALSE) %>%
   left_join(hourly %>% select(start_stn_id, datetime, departures,
                               lat, lon, start_stn_name),
             by = c("start_stn_id", "datetime")) %>%
@@ -331,8 +321,7 @@ target_ts <- ts(
     filter(start_stn_id == target_id) %>%
     arrange(datetime) %>%
     pull(departures),
-  frequency = 24
-)
+  frequency = 24)
 
 n_total <- length(target_ts)
 n_train <- floor(0.75 * n_total)
@@ -484,22 +473,14 @@ for (t in 1:n_ahead) {
   for (k in 1:nrow(phi)) {
     for (l in 1:ncol(phi)) {
       if (phi[k, l] != 0 && (t_idx - k) > 0) {
-        pred <- pred + phi[k, l] * blist[[l]] %*% vol_scaled[t_idx - k, ]
-      }
-    }
-  }
+        pred <- pred + phi[k, l] * blist[[l]] %*% vol_scaled[t_idx - k, ]}}}
   
   # MA part
   for (k in 1:nrow(theta)) {
     for (l in 1:ncol(theta)) {
       if (theta[k, l] != 0 && (t_idx - k) > 0 && (t_idx - k) <= n_tr) {
-        pred <- pred + theta[k, l] * blist[[l]] %*% res[t_idx - k, ]
-      }
-    }
-  }
-  
-  pre_star[t, ] <- pred
-}
+        pred <- pred + theta[k, l] * blist[[l]] %*% res[t_idx - k, ]}}}
+  pre_star[t, ] <- pred}
 
 starima_rmse <- sqrt(mean((test_m - pre_star)^2, na.rm = TRUE))
 starima_mae  <- mean(abs(test_m  - pre_star),    na.rm = TRUE)
@@ -515,8 +496,7 @@ if (length(target_col) > 0) {
     cbind(test_m[, target_col], pre_star[, target_col]),
     type = "l", lty = 1, lwd = 1.5, col = c("black", "red"),
     main = paste("ST-ARIMA Actual vs Predicted -", target_name),
-    xlab = "Time (hours)", ylab = "Scaled Departures"
-  )
+    xlab = "Time (hours)", ylab = "Scaled Departures")
   legend("topright", c("Actual", "Predicted"),
          col = c("black", "red"), lty = 1, bty = "n")
   dev.off()
@@ -524,19 +504,15 @@ if (length(target_col) > 0) {
     cbind(test_m[, target_col], pre_star[, target_col]),
     type = "l", lty = 1, lwd = 1.5, col = c("black", "red"),
     main = paste("ST-ARIMA Actual vs Predicted -", target_name),
-    xlab = "Time (hours)", ylab = "Scaled Departures"
-  )
+    xlab = "Time (hours)", ylab = "Scaled Departures")
   legend("topright", c("Actual", "Predicted"),
-         col = c("black", "red"), lty = 1, bty = "n")
-}
+         col = c("black", "red"), lty = 1, bty = "n")}
 
 # --- 6. MODEL COMPARISON ---
 results <- data.frame(
   Model = c("SARIMA", "ST-ARIMA"),
   RMSE  = round(c(sarima_rmse,  starima_rmse), 4),
-  MAE   = round(c(sarima_mae,   starima_mae),  4)
-)
-
+  MAE   = round(c(sarima_mae,   starima_mae),  4))
 print(results)
 
 write.csv(results, "model_comparison.csv", row.names = FALSE)
